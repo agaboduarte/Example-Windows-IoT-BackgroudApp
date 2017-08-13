@@ -41,13 +41,14 @@ namespace WinIotBackgroundTask
                 Running = true;
             }
 
+            // If the task is very time-consuming, call CheckStop periodically to verify the cancellation of the work
+            if (CheckStop()) return;
+
             await LogAsync($"Ticker {DateTime.Now}");
 
             // 
             // TODO: Insert code to perform background work
             //
-
-            CheckStop(); 
 
             lock (Lock)
             {
@@ -74,14 +75,17 @@ namespace WinIotBackgroundTask
             await FileIO.AppendLinesAsync(log, new[] { text });
         }
 
-        private void CheckStop()
+        private bool CheckStop()
         {
             // http://aka.ms/backgroundtaskdeferral
+            if (RequestStop) Deferral.Complete();
 
-            if (RequestStop)
+            lock (Lock)
             {
-                Deferral.Complete();
+                Running = false;
             }
+
+            return RequestStop;
         }
     }
 }
