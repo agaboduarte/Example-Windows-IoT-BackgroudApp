@@ -19,6 +19,7 @@ namespace WinIotBackgroundTask
         bool Running = false;
         bool RequestStop = false;
         ThreadPoolTimer PoolTimer = null;
+        object Lock = new object();
 
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
@@ -33,18 +34,27 @@ namespace WinIotBackgroundTask
 
         private async void PeriodicTimerCallback(ThreadPoolTimer timer)
         {
-            if (Running || RequestStop) return;
+            lock (Lock)
+            {
+                if (Running || RequestStop) return;
 
-            Running = true;
+                Running = true;
+            }
 
             await LogAsync($"Ticker {DateTime.Now}");
 
-            Running = false;
+            lock (Lock)
+            {
+                Running = false;
+            }
         }
 
         private async void TaskInstance_Canceled(IBackgroundTaskInstance sender, BackgroundTaskCancellationReason reason)
         {
-            RequestStop = true;
+            lock (Lock)
+            {
+                RequestStop = true;
+            }
 
             if (PoolTimer != null) PoolTimer.Cancel();
 
