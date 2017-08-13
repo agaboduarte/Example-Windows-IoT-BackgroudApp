@@ -19,6 +19,7 @@ namespace WinIotBackgroundTask
         BackgroundTaskDeferral Deferral = null;
         ThreadPoolTimer PoolTimer = null;
         TimerElapsedHandler Handler = null;
+        TimeSpan Delay = TimeSpan.FromSeconds(5);
 
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
@@ -29,7 +30,7 @@ namespace WinIotBackgroundTask
             await LogAsync($"Start {DateTime.Now}");
 
             Handler = new TimerElapsedHandler(PoolTimerCallback);
-            PoolTimer = ThreadPoolTimer.CreateTimer(Handler, TimeSpan.FromSeconds(5));
+            PoolTimer = ThreadPoolTimer.CreateTimer(Handler, Delay);
         }
 
         private async void PoolTimerCallback(ThreadPoolTimer timer)
@@ -43,7 +44,7 @@ namespace WinIotBackgroundTask
             // TODO: Insert code to perform background work
             //
 
-            PoolTimer = ThreadPoolTimer.CreateTimer(Handler, timer.Delay);
+            PoolTimer = ThreadPoolTimer.CreateTimer(Handler, Delay);
         }
 
         private async void TaskInstance_Canceled(IBackgroundTaskInstance sender, BackgroundTaskCancellationReason reason)
