@@ -43,6 +43,12 @@ namespace WinIotBackgroundTask
 
             await LogAsync($"Ticker {DateTime.Now}");
 
+            // 
+            // TODO: Insert code to perform background work
+            //
+
+            CheckStop(); 
+
             lock (Lock)
             {
                 Running = false;
@@ -66,6 +72,16 @@ namespace WinIotBackgroundTask
             var log = await ApplicationData.Current.LocalFolder.CreateFileAsync("run.log", CreationCollisionOption.OpenIfExists);
 
             await FileIO.AppendLinesAsync(log, new[] { text });
+        }
+
+        private void CheckStop()
+        {
+            // http://aka.ms/backgroundtaskdeferral
+
+            if (RequestStop)
+            {
+                Deferral.Complete();
+            }
         }
     }
 }
