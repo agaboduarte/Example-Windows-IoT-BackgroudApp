@@ -77,15 +77,17 @@ namespace WinIotBackgroundTask
 
         private bool CheckStop()
         {
+            if (!RequestStop) return false;
+
             // http://aka.ms/backgroundtaskdeferral
-            if (RequestStop) Deferral.Complete();
+            Deferral.Complete();
 
             lock (Lock)
             {
                 Running = false;
             }
 
-            return RequestStop;
+            return true;
         }
     }
 }
