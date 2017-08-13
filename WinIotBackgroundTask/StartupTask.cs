@@ -15,11 +15,10 @@ namespace WinIotBackgroundTask
 {
     public sealed class StartupTask : IBackgroundTask
     {
-        BackgroundTaskDeferral Deferral = null;
-        bool Running = false;
         bool RequestStop = false;
+        BackgroundTaskDeferral Deferral = null;
         ThreadPoolTimer PoolTimer = null;
-        object Lock = new object();
+        TimerElapsedHandler Handler = null;
 
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
@@ -29,18 +28,12 @@ namespace WinIotBackgroundTask
 
             await LogAsync($"Start {DateTime.Now}");
 
-            PoolTimer = ThreadPoolTimer.CreatePeriodicTimer(new TimerElapsedHandler(PeriodicTimerCallback), TimeSpan.FromSeconds(5));
+            Handler = new TimerElapsedHandler(PoolTimerCallback);
+            PoolTimer = ThreadPoolTimer.CreateTimer(Handler, TimeSpan.FromSeconds(5));
         }
 
-        private async void PeriodicTimerCallback(ThreadPoolTimer timer)
+        private async void PoolTimerCallback(ThreadPoolTimer timer)
         {
-            lock (Lock)
-            {
-                if (Running || RequestStop) return;
-
-                Running = true;
-            }
-
             // If the task is very time-consuming, call CheckStop periodically to verify the cancellation of the work
             if (CheckStop()) return;
 
@@ -50,18 +43,12 @@ namespace WinIotBackgroundTask
             // TODO: Insert code to perform background work
             //
 
-            lock (Lock)
-            {
-                Running = false;
-            }
+            PoolTimer = ThreadPoolTimer.CreateTimer(Handler, timer.Delay);
         }
 
         private async void TaskInstance_Canceled(IBackgroundTaskInstance sender, BackgroundTaskCancellationReason reason)
         {
-            lock (Lock)
-            {
-                RequestStop = true;
-            }
+            RequestStop = true;
 
             if (PoolTimer != null) PoolTimer.Cancel();
 
@@ -81,11 +68,6 @@ namespace WinIotBackgroundTask
 
             // http://aka.ms/backgroundtaskdeferral
             Deferral.Complete();
-
-            lock (Lock)
-            {
-                Running = false;
-            }
 
             return true;
         }
